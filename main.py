@@ -3,11 +3,11 @@ from discord.ext import commands
 import logging
 from dotenv import load_dotenv
 import os
-import time
 import asyncio
 import random
-from copypastas import COPYPASTAS
-from images.images import IMAGE_PATHS
+import json
+from data.copypastas import COPYPASTAS
+from data.images.images import IMAGE_PATHS
 
 load_dotenv()
 token = os.getenv('DISCORD_TOKEN')
@@ -19,10 +19,27 @@ intents.members = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 countdown_tasks = {}
+balance = {}
+BAL_FILE = "data/balances.json"
+
+def load_balances():
+    global balance
+
+    if os.path.exists(BAL_FILE):
+        with open(BAL_FILE, "r", encoding="utf-8") as f:
+            balance = json.load(f)
+    else:
+        balance = {}
+
+def save_balances():
+    with open(BAL_FILE, "w", encoding="utf-8") as f:
+        json.dump(balance, f, indent=2)
+
 
 @bot.event
 async def on_ready():
-    print("Lock and loaded", bot.user.name)
+    load_balances()
+    print("balances have been loaded in", bot.user.name)
 
 # @bot.event
 # async def on_message(message):
@@ -116,12 +133,36 @@ async def image(ctx):
     await ctx.send(file=discord.File(random.choice(IMAGE_PATHS)))
 
 @bot.command()
-async def coinflip(ctx):
+async def coinflip(ctx, arg=None):
     coin = "heads"
     if random.randint(0, 1):
         coin = "tails"
 
     await ctx.reply(f"The coin landed {coin}")
+
+    # if arg == coin:
+
+@bot.command()
+async def bal(ctx):
+    user_id = str(ctx.author.id)
+    amount = balance.get(user_id, 0)
+    balance[user_id] = amount
+
+    if amount == 0:
+        await ctx.reply(f"{ctx.author} is broke, *everyone laugh at this user*")
+    else:
+        await ctx.reply(f"{ctx.author} has {amount} in their balance")
+
+@bot.command()
+async def beg(ctx):
+    user_id = str(ctx.author.id)
+    amount = random.randint(0, 5)
+    balance[user_id] = balance.get(user_id, 0) + amount
+    save_balances()
+    if amount == 0:
+        await ctx.reply(f"{ctx.author} couldn't even beg properly")
+    else:
+        await ctx.reply(f"{ctx.author} managed to beg {amount}\nTheir balance is now {balance[user_id]}")
 
 @bot.command()
 async def dice(ctx):
