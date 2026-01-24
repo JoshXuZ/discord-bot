@@ -1,20 +1,17 @@
 from discord.ext import commands
-from bot.storage import load_json, save_json
 import random
-
-BAL_FILE = "data/balances.json"
 
 class Economy(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.balance = load_json(BAL_FILE, {})
     
     @commands.command()
     async def bal(self, ctx):
-        user_id = str(ctx.author.id)
-        amount = int(self.balance.get(user_id, 0))
-        self.balance[user_id] = amount
-        save_json(BAL_FILE, self.balance)
+        try:
+            amount = self.bot.bank.bal(ctx.author.id, ctx.guild.id if ctx.guild else None)
+        except ValueError as e:
+            await ctx.reply(str(e))  # "This is a server only feature"
+            return
 
         if amount == 0:
             await ctx.reply(f"{ctx.author} is broke, *everyone laugh at this user*")
@@ -23,15 +20,19 @@ class Economy(commands.Cog):
 
     @commands.command()
     async def beg(self, ctx):
-        user_id = str(ctx.author.id)
+        gid = ctx.guild.id if ctx.guild else None
+        if gid is None:
+            await ctx.reply("This is a server only feature.")
+            return
+
         amount = random.randint(0, 5)
-        self.balance[user_id] = int(self.balance.get(user_id, 0) + amount)
-        save_json(BAL_FILE, self.balance)
+        new_bal = self.bot.bank.deposit(ctx.author.id, gid, amount)
 
         if amount == 0:
             await ctx.reply(f"{ctx.author} couldn't even beg properly")
         else:
-            await ctx.reply(f"{ctx.author} managed to beg {amount}\nTheir balance is now {self.balance[user_id]}")
+            await ctx.reply(f"{ctx.author} managed to beg {amount}\nTheir balance is now {new_bal}")
+
 
 async def setup(bot):
     await bot.add_cog(Economy(bot))

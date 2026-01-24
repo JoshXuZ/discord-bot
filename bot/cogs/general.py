@@ -51,6 +51,10 @@ class General(commands.Cog):
         )
 
         await ctx.send(f"\"{msg.content}\"\n-{msg.author}")
+    
+    @commands.command()
+    async def log(self, ctx):
+        await ctx.reply("https://cdn.discordapp.com/attachments/1462006382231425136/1463301470215602317/1616441534865604609.mp4?ex=69715531&is=697003b1&hm=d1273b7ade17f6fffe8a42d18fc484353c76a45ba2f59eca133ba89ed3f66c92&")
 
 async def setup(bot):
     await bot.add_cog(General(bot))

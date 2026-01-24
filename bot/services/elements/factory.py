@@ -1,4 +1,4 @@
-from services.metals.strategy import PriceProvider
+from bot.services.elements.strategy import PriceProvider
 
 PROVIDERS = {
     "gold": PriceProvider("gold"),

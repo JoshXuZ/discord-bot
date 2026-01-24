@@ -3,6 +3,7 @@ import logging
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
+from bot.services.economy.bank import Bank
 
 load_dotenv()
 token = os.getenv('DISCORD_TOKEN')
@@ -13,6 +14,7 @@ intents.message_content = True
 intents.members = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
+bot.bank = Bank()
 
 # load cogs
 INITIAL_EXTENSIONS = [

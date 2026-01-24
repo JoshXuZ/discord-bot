@@ -1,5 +1,6 @@
 from discord.ext import commands
 from bot.storage import load_json, save_json
+import random
 
 COPYPASTAS_FILE = "data/copypastas.json"
 
@@ -18,7 +19,6 @@ class Copypastas(commands.Cog):
     
     @commands.command()
     async def copypasta(self, ctx):
-        import random
         pastas = self.get_list(ctx)
 
         if pastas == None:

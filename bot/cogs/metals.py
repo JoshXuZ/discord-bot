@@ -1,9 +1,9 @@
 from discord.ext import commands
+from bot.services.elements.factory import get_provider, list_provider
+from bot.services.elements.client import get_html
 import aiohttp
 import discord
 
-from services.metals.factory import get_provider, list_provider
-from services.metals.client import get_html
 
 class metals(commands.Cog):
     def __init__(self, bot):
