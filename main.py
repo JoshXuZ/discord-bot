@@ -24,7 +24,8 @@ INITIAL_EXTENSIONS = [
     "bot.cogs.chance",
     "bot.cogs.timer",
     "bot.cogs.images",
-    "bot.cogs.metals"
+    "bot.cogs.metals",
+    "bot.cogs.music"
 ]
 
 @bot.event

@@ -18,15 +18,19 @@ class metals(commands.Cog):
             await ctx.send("Please enter a valid metal")
             return
         
-        try:
-            html = await get_html()
-            await ctx.send(f"Current {metal} price:\n{provider.calculate(html)} per oz")
-        except aiohttp.ClientError:
-            await ctx.send("Network error while fetching the gold price.")
-        except discord.HTTPException as e:
-            await ctx.send(f"Discord send failed: `{e}`")
-        except ValueError as e:
-            await ctx.send(f"Parse error: **{e}**")
+        async with ctx.typing():
+            try:
+                html = await get_html()
+                value = provider.calculate(html)
+
+                embed = discord.Embed(title=f"{metal.title()} Price", description=f"**{value}** per oz")
+                await ctx.send(embed=embed)
+            except aiohttp.ClientError:
+                await ctx.send("Network error while fetching the gold price.")
+            except discord.HTTPException as e:
+                await ctx.send(f"Discord send failed: `{e}`")
+            except ValueError as e:
+                await ctx.send(f"Parse error: **{e}**")
 
     @commands.command()
     async def list_metals(self, ctx):

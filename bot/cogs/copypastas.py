@@ -1,5 +1,5 @@
 from discord.ext import commands
-from bot.storage import load_json, save_json
+from bot.services.copypasta.store import Store
 import random
 
 COPYPASTAS_FILE = "data/copypastas.json"
@@ -7,24 +7,39 @@ COPYPASTAS_FILE = "data/copypastas.json"
 class Copypastas(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.copypastas = load_json(COPYPASTAS_FILE, {})
+        self.store = Store.load(COPYPASTAS_FILE)
     
-    def get_list(self, ctx):
-        if ctx.guild is None:
-            return None
-        gid = str(ctx.guild.id)
-        if gid not in self.copypastas:
-            self.copypastas[gid] = []
-        return self.copypastas[gid]
-    
+    def _guild_check(self, ctx):
+        if not ctx.guild:
+            raise ValueError("This is a server only feature")
+        return ctx.guild.id
+
+    def _preview(self, text: str, n: int = 60) -> str:
+        text = " ".join(text.split())
+        return text if len(text) <= n else text[: n - 1] + "…"
+
+    async def _valid_message(self, ctx):
+        if ctx.message.reference is None:
+            raise ValueError("Please reply to a message you want me to add.")
+
+        msg = await ctx.channel.fetch_message(
+            ctx.message.reference.message_id
+        )
+
+        text = (msg.content or "").strip()
+        if not text:
+            raise ValueError("This is not valid")
+        
+        return text
+
     @commands.command()
     async def copypasta(self, ctx):
-        pastas = self.get_list(ctx)
+        try:
+            gid = self._guild_check(ctx)
+        except ValueError as e:
+            return await ctx.send(f"Parse error: **{e}**")
 
-        if pastas == None:
-            await ctx.send("This is a server only feature")
-            return
-        
+        pastas = self.store.list(gid)
         if not pastas:
             await ctx.send("This server currently has no copypastas, add one by replying to a message with !addcopypasta")
             return
@@ -33,58 +48,42 @@ class Copypastas(commands.Cog):
     
     @commands.command()
     async def listcopypastas(self, ctx):
-        pastas = self.get_list(ctx)
+        try:
+            gid = self._guild_check(ctx)
+        except ValueError as e:
+            return await ctx.send(f"Parse error: **{e}**")
 
-        if pastas == None:
-            await ctx.send("This is a server only feature")
-            return
-        
+        pastas = self.store.list(gid)
         if not pastas:
             await ctx.send("This server currently has no copypastas, add one by replying to a message with !addcopypasta")
             return
 
-        for copy in pastas:
-            await ctx.send(copy[:10])
+        lines = [f"{i+1}. {self._preview(p)}" for i, p in enumerate(pastas[:50])]
+        msg = "**Copypastas:**\n" + "\n".join(lines)
+        await ctx.send(msg)
     
     @commands.command()
     async def addcopypasta(self, ctx):
-        if ctx.message.reference is None:
-            await ctx.reply("Please reply to a message you want me to add.")
-            return
+        try:
+            gid = self._guild_check(ctx)
+            text = await self._valid_message(ctx)
+        except ValueError as e:
+            return await ctx.send(f"Parse error: **{e}**")
 
-        msg = await ctx.channel.fetch_message(
-            ctx.message.reference.message_id
-        )
-
-        text = (msg.content or "").strip()
-        if not text:
-            await ctx.reply("This is not valid")
-            return
-
-        pastas = self.get_list(ctx)
-        if pastas == None:
-            await ctx.send("This is a server only feature")
-            return
-
-        if text in pastas:
+        if not self.store.add(gid, text):
             await ctx.reply("This is already a copypasta")
             return
-        
-        pastas.append(text)
-        save_json(COPYPASTAS_FILE, self.copypastas)
 
         await ctx.reply("New copypasta successfully added")
     
     @commands.command()
     async def resetcopypastas(self, ctx):
-        pastas = self.get_list(ctx)
-        if pastas == None:
-            await ctx.send("This is a server only feature")
-            return
+        try:
+            gid = self._guild_check(ctx)
+        except ValueError as e:
+            return await ctx.send(f"Parse error: **{e}**")
 
-        pastas.clear()
-        save_json(COPYPASTAS_FILE, self.copypastas)
-
+        self.store.clear(gid)
         await ctx.reply("Copypastas have been reset")
 
 async def setup(bot):
